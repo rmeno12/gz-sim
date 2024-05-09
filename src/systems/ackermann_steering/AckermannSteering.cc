@@ -187,6 +187,8 @@ class ignition::gazebo::systems::AckermannSteeringPrivate
 
   /// \brief child_frame_id from sdf.
   public: std::string sdfChildFrameId;
+
+  public: double steer_p_gain{1.0};
 };
 
 //////////////////////////////////////////////////
@@ -263,6 +265,8 @@ void AckermannSteering::Configure(const Entity &_entity,
   this->dataPtr->limiterLin = std::make_unique<math::SpeedLimiter>();
   this->dataPtr->limiterAng = std::make_unique<math::SpeedLimiter>();
 
+  this->dataPtr->steer_p_gain = _sdf->Get<double>("steer_p_gain");
+
   // Parse speed limiter parameters.
   if (_sdf->HasElement("min_velocity"))
   {
@@ -300,7 +304,6 @@ void AckermannSteering::Configure(const Entity &_entity,
     this->dataPtr->limiterLin->SetMaxJerk(maxJerk);
     this->dataPtr->limiterAng->SetMaxJerk(maxJerk);
   }
-
 
   double odomFreq = _sdf->Get<double>("odom_publish_frequency", 50).first;
   if (odomFreq > 0)
@@ -773,11 +776,9 @@ void AckermannSteeringPrivate::UpdateVelocity(
   double leftDelta = leftSteeringJointAngle - leftSteeringPos->Data()[0];
   double rightDelta = rightSteeringJointAngle - rightSteeringPos->Data()[0];
 
-  // Simple proportional control with a gain of 1
-  // Adding programmable PID values might be a future feature.
-  // Works as is for tested cases
-  this->leftSteeringJointSpeed = leftDelta;
-  this->rightSteeringJointSpeed = rightDelta;
+  // Simple proportional control
+  this->leftSteeringJointSpeed = steer_p_gain * leftDelta;
+  this->rightSteeringJointSpeed = steer_p_gain * rightDelta;
 }
 
 //////////////////////////////////////////////////
